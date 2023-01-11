@@ -5,7 +5,16 @@
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml)
+[![Dev
+R-CMD-check](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml)
+[![CRAN
+version](https://www.r-pkg.org/badges/version/etwfe)](https://CRAN.R-project.org/package=etwfe)
+[![CRAN
+checks](https://badges.cranchecks.info/worst/etwfe.svg)](https://cran.r-project.org/web/checks/check_results_etwfe.html)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/etwfe)](https://cran.r-project.org/package=etwfe)
+[![Dependencies](https://tinyverse.netlify.com/badge/etwfe)](https://CRAN.R-project.org/package=etwfe)
+[![Docs](https://img.shields.io/badge/docs-homepage-blue.svg)](https://grantmcdermott.com/etwfe/index.html)
 <!-- badges: end -->
 
 The goal of **etwfe** is to estimate extended two-way fixed effects *a
@@ -19,10 +28,18 @@ and elegant, but rather tedious and error prone to code up manually. The
 **etwfe** package aims to simplify the process by providing convenience
 functions that do the work for you.
 
+Documentation is available on the package
+[homepage](https://grantmcdermott.com/etwfe/).
+
 ## Installation
 
-You can install the development version of **etwfe** from
-[GitHub](https://github.com/):
+You can install **etwfe** from CRAN.
+
+``` r
+install.packages("etwfe")
+```
+
+Or, you can grab the development version from GitHub.
 
 ``` r
 # install.packages("remotes")
@@ -31,9 +48,11 @@ remotes::install_github("grantmcdermott/etwfe")
 
 ## Quickstart example
 
-A detailed walkthrough of the package is provided in the introductory
-vignette. See `vignette("etwfe")`. Here’s a quickstart example to
-demonstrate the basic syntax.
+A detailed walkthrough of **etwfe** is provided in the introductory
+vignette (available
+[online](https://grantmcdermott.com/etwfe/articles/etwfe.html), or by
+typing `vignette("etwfe")` in your R console). But here’s a quickstart
+example to demonstrate the basic syntax.
 
 ``` r
 library(etwfe)
@@ -88,11 +107,11 @@ mod
 # Event-study treatment effects
 emfx(mod, type = "event") |>
   summary()
-#>      Term    Contrast event   Effect Std. Error z value   Pr(>|z|)    2.5 %   97.5 %
-#> 1 .Dtreat mean(dY/dX)     0 -0.03321    0.01337  -2.484 0.01297951 -0.05941 -0.00701
-#> 2 .Dtreat mean(dY/dX)     1 -0.05735    0.01715  -3.343 0.00082830 -0.09097 -0.02373
-#> 3 .Dtreat mean(dY/dX)     2 -0.13787    0.03079  -4.477 7.5665e-06 -0.19823 -0.07751
-#> 4 .Dtreat mean(dY/dX)     3 -0.10954    0.03232  -3.389 0.00070142 -0.17289 -0.04619
+#>      Term                 Contrast event   Effect Std. Error z value   Pr(>|z|)    2.5 %   97.5 %
+#> 1 .Dtreat mean(TRUE) - mean(FALSE)     0 -0.03321    0.01337  -2.484 0.01297951 -0.05941 -0.00701
+#> 2 .Dtreat mean(TRUE) - mean(FALSE)     1 -0.05735    0.01715  -3.343 0.00082830 -0.09097 -0.02373
+#> 3 .Dtreat mean(TRUE) - mean(FALSE)     2 -0.13787    0.03079  -4.477 7.5665e-06 -0.19823 -0.07751
+#> 4 .Dtreat mean(TRUE) - mean(FALSE)     3 -0.10954    0.03232  -3.389 0.00070142 -0.17289 -0.04619
 #> 
 #> Model type:  etwfe 
 #> Prediction type:  response

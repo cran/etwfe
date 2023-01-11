@@ -4,16 +4,18 @@
 ##' variables (rhs), e.g. `y ~ x1 + x2`. Please note that time-varying controls
 ##' are not supported. Similarly, if no additional controls are required, the 
 ##' rhs must take the value of zero, e.g. `y ~ 0`.
-##' @param ivar Index variable. Can be a string (e.g., "country") or an 
-##' expression (e.g., country). Leaving as NULL (the default) will result in
-##' group-level fixed effects being used, which is more efficient and necessary 
-##' for nonlinear models (see `family` argument below).
 ##' @param tvar Time variable. Can be a string (e.g., "year") or an expression
 ##' (e.g., year).
 ##' @param gvar Group variable. Can be either a string (e.g., "first_treated") 
 ##' or an expression (e.g., first_treated). In a staggered treatment setting, 
 ##' the group variable typically denotes treatment cohort.
 ##' @param data The data frame that you want to run ETWFE on.
+##' @param ivar Optional index variable. Can be a string (e.g., "country") or an 
+##' expression (e.g., country). Leaving as NULL (the default) will result in
+##' group-level fixed effects being used, which is more efficient and necessary 
+##' for nonlinear models (see `family` argument below). However, you may still
+##' want to cluster your standard errors by your index variable through the
+##' `vcov` argument. See examples below.
 ##' @param tref Optional reference value for `tvar`. Defaults to its minimum 
 ##' value (i.e., the first time period observed in the dataset).
 ##' @param gref Optional reference value for `gvar`. You shouldn't need to 
@@ -60,7 +62,7 @@
 ##'     tvar = year,        # time variable
 ##'     gvar = first.treat, # group variable
 ##'     data = mpdta,       # dataset
-##'     vcov = ~countyreal  # vcov adjustment (here: clustered)
+##'     vcov = ~countyreal  # vcov adjustment (here: clustered by county)
 ##'     )
 ##' mod
 ##' 
@@ -71,10 +73,10 @@
 ##' @export
 etwfe = function(
     fml = NULL,
-    ivar = NULL,
     tvar = NULL,
     gvar = NULL,
     data = NULL,
+    ivar = NULL,
     tref = NULL,
     gref = NULL,
     cgroup = c("notyet", "never"),
@@ -90,16 +92,17 @@ etwfe = function(
   
   if (is.null(fml)) stop("A non-NULL `fml` argument is required.\n")
   if (is.null(data)) stop("A non-NULL `data` argument is required.\n")
+  data = as.data.frame(data)
   
   ## NSE ----
   nl = as.list(seq_along(data))
   names(nl) = names(data)
-  ivar = eval(substitute(ivar), nl, parent.frame())
-  if (is.numeric(ivar)) ivar = names(data)[ivar]
   tvar = eval(substitute(tvar), nl, parent.frame())
   if (is.numeric(tvar)) tvar = names(data)[tvar]
   gvar = eval(substitute(gvar), nl, parent.frame())
   if (is.numeric(gvar)) gvar = names(data)[gvar]
+  ivar = eval(substitute(ivar), nl, parent.frame())
+  if (is.numeric(ivar)) ivar = names(data)[ivar]
   
   if (is.null(gvar)) stop("A non-NULL `gvar` argument is required.\n")
   if (is.null(tvar)) stop("A non-NULL `tvar` argument is required.\n")
@@ -113,7 +116,7 @@ etwfe = function(
   } else if (ctrls == "0") {
     ctrls = NULL
   } else {
-    ctrls_dm = paste0(strsplit(ctrls, " \\+ ")[[1]], "_dm")
+    ctrls_dm = unique(paste0(strsplit(ctrls, " \\+ | \\* | \\: ")[[1]], "_dm"))
     if (fe == "vs") {
       vs = paste0("[", gsub(" \\+", ",", ctrls), "]") ## For varying slopes later 
     }
@@ -155,15 +158,15 @@ etwfe = function(
   ref_string = paste0(ref_string, ", ref2 = ", tref)
   
   if (cgroup == "notyet") {
-    data[[".Dtreat"]] = as.integer(data[[tvar]] >= data[[gvar]] & data[[gvar]] != gref)
+    data[[".Dtreat"]] = data[[tvar]] >= data[[gvar]] & data[[gvar]] != gref
     if (!gref_min_flag) {
-      data[[".Dtreat"]] = ifelse(data[[tvar]] < gref, data[[".Dtreat"]], NA_integer_)
+      data[[".Dtreat"]] = ifelse(data[[tvar]] < gref, data[[".Dtreat"]], NA)
     } else {
-      data[[".Dtreat"]] = ifelse(data[[tvar]] > gref, data[[".Dtreat"]], NA_integer_)
+      data[[".Dtreat"]] = ifelse(data[[tvar]] > gref, data[[".Dtreat"]], NA)
     }
   } else {
     ## Placeholder .Dtreat for never treated group
-    data[[".Dtreat"]] = 1L
+    data[[".Dtreat"]] = TRUE
   }
   rhs = paste0(".Dtreat : ", rhs)
   
@@ -230,7 +233,9 @@ etwfe = function(
   class(est) = c("etwfe", class(est))
   attr(est, "etwfe") = list(
     gvar = gvar,
-    tvar = tvar
+    tvar = tvar,
+    gref = gref,
+    tref = tref
   )
   
   ## Return ----

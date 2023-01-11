@@ -31,12 +31,14 @@ emfx(mod)
 
 ## -----------------------------------------------------------------------------
 mod_es = emfx(mod, type = "event")
-# mod_es
-summary(mod_es) # Summary print looks a bit nicer
+
+# Summary print looks a bit nicer, so let's use that here.
+summary(mod_es) 
 
 ## -----------------------------------------------------------------------------
 library(modelsummary)
 
+# Quick renaming function to replace ".Dtreat" with something more meaningful
 rename_fn = function(old_names) {
   new_names = gsub(".Dtreat", "Years post treatment =", old_names)
   setNames(new_names, old_names)
@@ -44,21 +46,36 @@ rename_fn = function(old_names) {
 
 modelsummary(
   mod_es,
-  shape = term:event:statistic ~ model,
-  coef_rename =  rename_fn,
-  gof_omit = "Adj|Within|RMSE",
-  title = "Event study",
-  notes = "Std. errors are clustered at the county level"
+  shape       = term:event:statistic ~ model,
+  coef_rename = rename_fn,
+  gof_omit    = "Adj|Within|IC|RMSE",
+  title       = "Event study",
+  notes       = "Std. errors are clustered at the county level"
 )
 
 ## -----------------------------------------------------------------------------
 library(ggplot2)
+theme_set(
+  theme_minimal() + theme(panel.grid.minor = element_blank())
+)
 
 ggplot(mod_es, aes(x = event, y = dydx, ymin = conf.low, ymax = conf.high)) +
-  geom_hline(yintercept = 0, col = "grey50") +
-  geom_pointrange() +
-  labs(x = "Years post treatment", y = "Effect on log employment") +
-  theme_minimal()
+  geom_hline(yintercept = 0) +
+  geom_pointrange(col = "darkcyan") +
+  labs(x = "Years post treatment", y = "Effect on log employment")
+
+## -----------------------------------------------------------------------------
+# Use post_only = FALSE to get the "zero" pre-treatment effects
+mod_es2 = emfx(mod, type = "event", post_only = FALSE)
+
+ggplot(mod_es2, aes(x = event, y = dydx, ymin = conf.low, ymax = conf.high)) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = -1, lty = 2) +
+  geom_pointrange(col = "darkcyan") +
+  labs(
+    x = "Years post treatment", y = "Effect on log employment",
+    caption = "Note: Zero pre-treatment effects for illustrative purposes only."
+  )
 
 ## ---- warning=FALSE, message=FALSE--------------------------------------------
 mpdta$emp = exp(mpdta$lemp)
@@ -77,7 +94,7 @@ mod$fml_all
 # First construct the dataset
 mpdta2 = mpdta |>
   transform(
-    .Dtreat = as.integer(year >= first.treat & first.treat != 0),
+    .Dtreat = year >= first.treat & first.treat != 0,
     lpop_dm = ave(lpop, first.treat, year, FUN = \(x) x - mean(x, na.rm = TRUE))
   )
 
@@ -133,4 +150,18 @@ mods = list(
 )
 
 modelsummary(mods, gof_map = NA)
+
+## -----------------------------------------------------------------------------
+mod_es_i = etwfe(
+  lemp ~ lpop, tvar = year, gvar = first.treat, data = mpdta,
+  ivar = countyreal  # NEW: Use unit-level (county) FEs
+  ) |>
+  emfx("event")
+
+modelsummary(
+  list("Group-level FEs (default)" = mod_es, "Unit-level FEs" = mod_es_i),
+  shape       = term:event:statistic ~ model,
+  coef_rename = rename_fn,
+  gof_omit    = "Adj|Within|IC|RMSE"
+)
 
