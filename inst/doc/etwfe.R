@@ -16,7 +16,7 @@ library(etwfe)
 
 mod =
   etwfe(
-    fml  = lemp ~ lpop, # outcome ~ (time-invariant) controls
+    fml  = lemp ~ lpop, # outcome ~ controls
     tvar = year,        # time variable
     gvar = first.treat, # group variable
     data = mpdta,       # dataset
@@ -31,9 +31,7 @@ emfx(mod)
 
 ## -----------------------------------------------------------------------------
 mod_es = emfx(mod, type = "event")
-
-# Summary print looks a bit nicer, so let's use that here.
-summary(mod_es) 
+mod_es
 
 ## -----------------------------------------------------------------------------
 library(modelsummary)
@@ -59,23 +57,51 @@ theme_set(
   theme_minimal() + theme(panel.grid.minor = element_blank())
 )
 
-ggplot(mod_es, aes(x = event, y = dydx, ymin = conf.low, ymax = conf.high)) +
+ggplot(mod_es, aes(x = event, y = estimate, ymin = conf.low, ymax = conf.high)) +
   geom_hline(yintercept = 0) +
   geom_pointrange(col = "darkcyan") +
-  labs(x = "Years post treatment", y = "Effect on log employment")
+  labs(x = "Years post treatment", y = "Effect on log teen employment")
 
 ## -----------------------------------------------------------------------------
 # Use post_only = FALSE to get the "zero" pre-treatment effects
 mod_es2 = emfx(mod, type = "event", post_only = FALSE)
 
-ggplot(mod_es2, aes(x = event, y = dydx, ymin = conf.low, ymax = conf.high)) +
+ggplot(mod_es2, aes(x = event, y = estimate, ymin = conf.low, ymax = conf.high)) +
   geom_hline(yintercept = 0) +
   geom_vline(xintercept = -1, lty = 2) +
   geom_pointrange(col = "darkcyan") +
   labs(
-    x = "Years post treatment", y = "Effect on log employment",
+    x = "Years post treatment", y = "Effect on log teen employment",
     caption = "Note: Zero pre-treatment effects for illustrative purposes only."
   )
+
+## -----------------------------------------------------------------------------
+gls_fips = c("IL" = 17, "IN" = 18, "MI" = 26, "MN" = 27,
+             "NY" = 36, "OH" = 39, "PA" = 42, "WI" = 55)
+
+mpdta$gls = substr(mpdta$countyreal, 1, 2) %in% gls_fips
+
+## -----------------------------------------------------------------------------
+hmod = etwfe(
+   lemp ~ lpop, tvar = year, gvar = first.treat, data = mpdta, 
+   vcov = ~countyreal,
+   xvar = gls           ## <= het. TEs by gls
+   )
+
+# Heterogeneous ATEs (could also specify `type = "event"`, etc.) 
+emfx(hmod)
+
+## -----------------------------------------------------------------------------
+emfx(hmod, hypothesis = "b1 = b2")
+
+## -----------------------------------------------------------------------------
+modelsummary(
+    models      = list("GLS county" = emfx(hmod)),
+    shape       = term + statistic ~ model + gls, # add xvar variable (here: gls)
+    coef_map    = c(".Dtreat" = "ATT"),
+    gof_map     = NA,
+    title       = "Comparing the ATT on GLS and non-GLS counties"
+)
 
 ## ---- warning=FALSE, message=FALSE--------------------------------------------
 mpdta$emp = exp(mpdta$lemp)
@@ -84,8 +110,29 @@ etwfe(
   emp ~ lpop, tvar = year, gvar = first.treat, data = mpdta, vcov = ~countyreal,
   family = "poisson"
   ) |>
-  emfx("event") |>
-  summary()
+  emfx("event")
+
+## -----------------------------------------------------------------------------
+# Step 0 already complete: using the same `mod` object from earlier...
+
+# Step 1
+emfx(mod, type = "event", vcov = FALSE)
+
+# Step 2
+emfx(mod, type = "event", vcov = FALSE, collapse = TRUE)
+
+# Step 3: Results from 1 and 2 are similar enough, so get approx. SEs
+mod_es2 = emfx(mod, type = "event", collapse = TRUE)
+
+## -----------------------------------------------------------------------------
+modelsummary(
+    list("Original" = mod_es, "Collapsed" = mod_es2),
+    shape       = term:event:statistic ~ model,
+    coef_rename = rename_fn,
+    gof_omit    = "Adj|Within|IC|RMSE",
+    title       = "Event study",
+    notes       = "Std. errors are clustered at the county level"
+)
 
 ## -----------------------------------------------------------------------------
 mod$fml_all
@@ -111,6 +158,25 @@ modelsummary(
   list("etwfe" = mod, "manual" = mod2),
   gof_map = NA # drop all goodness-of-fit info for brevity
 )
+
+## -----------------------------------------------------------------------------
+library(marginaleffects)
+
+# Simple ATE
+slopes(
+  mod2, 
+  newdata   = subset(mpdta2, .Dtreat), # we only want rows where .Dtreat is TRUE
+  variables = ".Dtreat", 
+  by        = ".Dtreat"
+  )
+
+# Event study
+slopes(
+  mod2, 
+  newdata   = transform(subset(mpdta2, .Dtreat), event = first.treat - year),
+  variables = ".Dtreat", 
+  by        = "event"
+  )
 
 ## ---- message=FALSE, warning=FALSE--------------------------------------------
 # fe = "feo" (fixed effects only)

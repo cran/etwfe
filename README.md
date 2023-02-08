@@ -5,10 +5,12 @@
 
 <!-- badges: start -->
 
-[![Dev
-R-CMD-check](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml)
 [![CRAN
 version](https://www.r-pkg.org/badges/version/etwfe)](https://CRAN.R-project.org/package=etwfe)
+[![R-universe status
+badge](https://grantmcdermott.r-universe.dev/badges/etwfe)](https://grantmcdermott.r-universe.dev)
+[![Dev
+R-CMD-check](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml)
 [![CRAN
 checks](https://badges.cranchecks.info/worst/etwfe.svg)](https://cran.r-project.org/web/checks/check_results_etwfe.html)
 [![CRAN
@@ -39,11 +41,10 @@ You can install **etwfe** from CRAN.
 install.packages("etwfe")
 ```
 
-Or, you can grab the development version from GitHub.
+Or, you can grab the development version from R-universe.
 
 ``` r
-# install.packages("remotes")
-remotes::install_github("grantmcdermott/etwfe")
+install.packages("etwfe", repos = "https://grantmcdermott.r-universe.dev")
 ```
 
 ## Quickstart example
@@ -105,16 +106,16 @@ mod
 #>                  Within R2: 8.449e-4
 
 # Event-study treatment effects
-emfx(mod, type = "event") |>
-  summary()
-#>      Term                 Contrast event   Effect Std. Error z value   Pr(>|z|)    2.5 %   97.5 %
-#> 1 .Dtreat mean(TRUE) - mean(FALSE)     0 -0.03321    0.01337  -2.484 0.01297951 -0.05941 -0.00701
-#> 2 .Dtreat mean(TRUE) - mean(FALSE)     1 -0.05735    0.01715  -3.343 0.00082830 -0.09097 -0.02373
-#> 3 .Dtreat mean(TRUE) - mean(FALSE)     2 -0.13787    0.03079  -4.477 7.5665e-06 -0.19823 -0.07751
-#> 4 .Dtreat mean(TRUE) - mean(FALSE)     3 -0.10954    0.03232  -3.389 0.00070142 -0.17289 -0.04619
+emfx(mod, type = "event")
 #> 
-#> Model type:  etwfe 
-#> Prediction type:  response
+#>     Term                 Contrast Estimate Std. Error      z   Pr(>|z|)    2.5 %   97.5 % event
+#>  .Dtreat mean(TRUE) - mean(FALSE) -0.03321    0.01337 -2.484 0.01297951 -0.05941 -0.00701     0
+#>  .Dtreat mean(TRUE) - mean(FALSE) -0.05735    0.01715 -3.343 0.00082830 -0.09097 -0.02373     1
+#>  .Dtreat mean(TRUE) - mean(FALSE) -0.13787    0.03079 -4.477 7.5665e-06 -0.19823 -0.07751     2
+#>  .Dtreat mean(TRUE) - mean(FALSE) -0.10954    0.03232 -3.389 0.00070142 -0.17289 -0.04619     3
+#> 
+#> Prediction type:  response 
+#> Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, event, predicted, predicted_hi, predicted_lo
 ```
 
 ## Acknowledgements
