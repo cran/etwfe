@@ -1,3 +1,19 @@
+# etwfe 0.3.1
+
+## Internal
+
+- Minor updates to internal code and some unit tests to match forthcoming
+updates to 
+**marginaleffects** 0.10.0. The latter update also brings some notable
+performance improvements to `emfx()`. 
+
+## Other
+
+- Some documentation improvements.
+- The Examples have been wrapped in `\dontrun` to avoid triggering CRAN NOTEs on
+Windows for exceeding 5 seconds execution time. Note that the package homepage
+still runs these Examples if users want to inspect the output online.
+
 # etwfe 0.3.0
 
 ## New features and enhancements
@@ -19,9 +35,9 @@ section of the vignette and help documentation, including advice for combining
 collapsing with `emfx(..., vcov = FALSE)` (which yields an even more dramatic
 speed boost but at a cost of not reporting any standard errors).
 
-- Users can now use a 1 on the fml RHS to indicate that there are no control
+- Users can now use a 1 on the fml RHS to indicate that there are no control variables
 as part of the `etwfe` call, e.g. `etwfe(y ~ 1, ...)`. This provides a second 
-way of doing this, alongside the existing 0 option, e.g. `etwfe(y ~ 0, ...)` 
+way of indicating no controls, alongside the existing 0 option, e.g. `etwfe(y ~ 0, ...)` 
 
 ## Bug fixes
 

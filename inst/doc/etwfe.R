@@ -88,7 +88,7 @@ hmod = etwfe(
    xvar = gls           ## <= het. TEs by gls
    )
 
-# Heterogeneous ATEs (could also specify `type = "event"`, etc.) 
+# Heterogeneous ATTs (could also specify `type = "event"`, etc.) 
 emfx(hmod)
 
 ## -----------------------------------------------------------------------------
@@ -162,7 +162,7 @@ modelsummary(
 ## -----------------------------------------------------------------------------
 library(marginaleffects)
 
-# Simple ATE
+# Simple ATT
 slopes(
   mod2, 
   newdata   = subset(mpdta2, .Dtreat), # we only want rows where .Dtreat is TRUE
@@ -173,7 +173,7 @@ slopes(
 # Event study
 slopes(
   mod2, 
-  newdata   = transform(subset(mpdta2, .Dtreat), event = first.treat - year),
+  newdata   = transform(subset(mpdta2, .Dtreat), event = year - first.treat),
   variables = ".Dtreat", 
   by        = "event"
   )

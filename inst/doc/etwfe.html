@@ -571,22 +571,27 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 case (two units, two periods), a simple interaction effect between two
 dummy variables suffices to recover the treatment effect. In base R this
 might look something like:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(y <span class="sc">~</span> Dtreated_unit <span class="sc">*</span> Dpost_treatment, <span class="at">data =</span> somedata)</span></code></pre></div>
-<p>Rather than specify the interaction directly, in practice researchers
-often use an equivalent formulation known as <em>two-way fixed
-effects</em> (TWFE). The core idea of TWFE is that we can subsume the
-interaction term in the previous code chunk by adding unit and time
-fixed effects to the regression. A single treatment dummy can then be
-used to capture the effect of treatment directly. A TWFE regression in
-base R might look as follows:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(y <span class="sc">~</span> Dtreat <span class="sc">+</span> <span class="fu">factor</span>(id) <span class="sc">+</span> <span class="fu">factor</span>(period), <span class="at">data =</span> somedata)</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">lm</span>(y <span class="sc">~</span> Dtreated_unit <span class="sc">*</span> Dpost_treatment, <span class="at">data =</span> somedata)</span></code></pre></div>
+<p>where the resulting coefficient on the
+<code>Dtreated_unitTRUE:Dpost_treatmentTRUE</code> interaction term
+represents the treatment effect.</p>
+<p>Rather than manually specify the interaction term, in practice
+researchers often use an equivalent formulation known as <em>two-way
+fixed effects</em> (TWFE). The core idea of TWFE is that we can subsume
+the interaction term from the previous code chunk by adding unit and
+time fixed effects. A single treatment dummy can then be used to capture
+the effect of treatment directly. A TWFE regression in base R might look
+as follows:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">lm</span>(y <span class="sc">~</span> Dtreat <span class="sc">+</span> <span class="fu">factor</span>(id) <span class="sc">+</span> <span class="fu">factor</span>(period), <span class="at">data =</span> somedata)</span></code></pre></div>
+<p>where the treatment effect is now captured by the coefficient on the
+<code>Dtreat</code> dummy.</p>
 <p>The TWFE shortcut is especially nice for more complicated panel data
 settings with multiple units and multiple times periods. Speaking of
 which, if you prefer to use a dedicated fixed effects / panel data
 package like <strong>fixest</strong>, you could also estimate the
 previous regression like so:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">feols</span>(y <span class="sc">~</span> Dtreat <span class="sc">|</span> id <span class="sc">+</span> period, <span class="at">data =</span> somedata)</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">feols</span>(y <span class="sc">~</span> Dtreat <span class="sc">|</span> id <span class="sc">+</span> period, <span class="at">data =</span> somedata)</span></code></pre></div>
 <p>These TWFE regressions are easy to run and intuitive, and for a long
 time everyone was happy. But it was too good to last. A cottage industry
 of clever research now demonstrates that things are not quite so simple.
@@ -624,16 +629,16 @@ convenience functions that do all this work for you.</p>
 we’ll use the <a href="https://bcallaway11.github.io/did/reference/mpdta.html"><code>mpdta</code></a>
 dataset on US teen employment from the <strong>did</strong> package
 (which you’ll need to install separately).</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages(&quot;did&quot;)</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;mpdta&quot;</span>, <span class="at">package =</span> <span class="st">&quot;did&quot;</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(mpdta)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     year countyreal     lpop     lemp first.treat treat</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 866 2003       8001 5.896761 8.461469        2007     1</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 841 2004       8001 5.896761 8.336870        2007     1</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 842 2005       8001 5.896761 8.340217        2007     1</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 819 2006       8001 5.896761 8.378161        2007     1</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 827 2007       8001 5.896761 8.487352        2007     1</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 937 2003       8019 2.232377 4.997212        2007     1</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># install.packages(&quot;did&quot;)</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;mpdta&quot;</span>, <span class="at">package =</span> <span class="st">&quot;did&quot;</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">head</span>(mpdta)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;     year countyreal     lpop     lemp first.treat treat</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; 866 2003       8001 5.896761 8.461469        2007     1</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; 841 2004       8001 5.896761 8.336870        2007     1</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; 842 2005       8001 5.896761 8.340217        2007     1</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; 819 2006       8001 5.896761 8.378161        2007     1</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; 827 2007       8001 5.896761 8.487352        2007     1</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; 937 2003       8019 2.232377 4.997212        2007     1</span></span></code></pre></div>
 <p>“Treatment” in this dataset refers to an increase in the minimum wage
 rate. In the examples that follow, our goal is to estimate the effect of
 this minimum wage treatment (<code>treat</code>) on the log of teen
@@ -655,16 +660,16 @@ two consecutive function calls: 1) <code>etwfe()</code> and 2)
 <p>Given the package name, it won’t surprise you to learn that the key
 estimating function is <code>etwfe()</code>. Here’s how it would look
 for our example dataset.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(etwfe)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">=</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">etwfe</span>(</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">fml  =</span> lemp <span class="sc">~</span> lpop, <span class="co"># outcome ~ controls</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">tvar =</span> year,        <span class="co"># time variable</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">gvar =</span> first.treat, <span class="co"># group variable</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> mpdta,       <span class="co"># dataset</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">vcov =</span> <span class="sc">~</span>countyreal  <span class="co"># vcov adjustment (here: clustered)</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">library</span>(etwfe)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>mod <span class="ot">=</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="fu">etwfe</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>    <span class="at">fml  =</span> lemp <span class="sc">~</span> lpop, <span class="co"># outcome ~ controls</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>    <span class="at">tvar =</span> year,        <span class="co"># time variable</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>    <span class="at">gvar =</span> first.treat, <span class="co"># group variable</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>    <span class="at">data =</span> mpdta,       <span class="co"># dataset</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>    <span class="at">vcov =</span> <span class="sc">~</span>countyreal  <span class="co"># vcov adjustment (here: clustered)</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>    )</span></code></pre></div>
 <p>There are a few things to say about our <code>etwfe()</code> argument
 choices and other function options, but we’ll leave those details aside
 until a bit later. Right now, just know that all of the above arguments
@@ -672,47 +677,47 @@ are required except <code>vcov</code> (though I generally recommend it
 too, since we probably want to cluster our standard errors at the
 individual unit level).</p>
 <p>Let’s take a look at our model object.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>mod</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; OLS estimation, Dep. Var.: lemp</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Observations: 2,500 </span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Fixed-effects: first.treat: 4,  year: 5</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Varying slopes: lpop (first.treat: 4),  lpop (year: 5)</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Standard-errors: Clustered (countyreal) </span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                                               Estimate Std. Error   t value</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2004         -0.021248   0.021728 -0.977890</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2005         -0.081850   0.027375 -2.989963</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2006         -0.137870   0.030795 -4.477097</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2007         -0.109539   0.032322 -3.389024</span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2006          0.002537   0.018883  0.134344</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2007         -0.045093   0.021987 -2.050907</span></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2007:year::2007         -0.045955   0.017975 -2.556568</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2004:lpop_dm  0.004628   0.017584  0.263184</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2005:lpop_dm  0.025113   0.017904  1.402661</span></span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2006:lpop_dm  0.050735   0.021070  2.407884</span></span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2007:lpop_dm  0.011250   0.026617  0.422648</span></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2006:lpop_dm  0.038935   0.016472  2.363731</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2007:lpop_dm  0.038060   0.022477  1.693276</span></span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2007:year::2007:lpop_dm -0.019835   0.016198 -1.224528</span></span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                                                Pr(&gt;|t|)    </span></span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2004         3.2860e-01    </span></span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2005         2.9279e-03 ** </span></span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2006         9.3851e-06 ***</span></span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2007         7.5694e-04 ***</span></span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2006         8.9318e-01    </span></span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2007         4.0798e-02 *  </span></span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2007:year::2007         1.0866e-02 *  </span></span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2004:lpop_dm 7.9252e-01    </span></span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2005:lpop_dm 1.6134e-01    </span></span>
-<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2006:lpop_dm 1.6407e-02 *  </span></span>
-<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2007:lpop_dm 6.7273e-01    </span></span>
-<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2006:lpop_dm 1.8474e-02 *  </span></span>
-<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2007:lpop_dm 9.1027e-02 .  </span></span>
-<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2007:year::2007:lpop_dm 2.2133e-01    </span></span>
-<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ... 10 variables were removed because of collinearity (.Dtreat:first.treat::2006:year::2004, .Dtreat:first.treat::2006:year::2005 and 8 others [full set in $collin.var])</span></span>
-<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
-<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
-<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; RMSE: 0.537131     Adj. R2: 0.87167 </span></span>
-<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                  Within R2: 8.449e-4</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>mod</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; OLS estimation, Dep. Var.: lemp</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; Observations: 2,500 </span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; Fixed-effects: first.treat: 4,  year: 5</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; Varying slopes: lpop (first.treat: 4),  lpop (year: 5)</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; Standard-errors: Clustered (countyreal) </span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt;                                               Estimate Std. Error   t value</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2004         -0.021248   0.021728 -0.977890</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2005         -0.081850   0.027375 -2.989963</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2006         -0.137870   0.030795 -4.477097</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2007         -0.109539   0.032322 -3.389024</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2006          0.002537   0.018883  0.134344</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2007         -0.045093   0.021987 -2.050907</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2007:year::2007         -0.045955   0.017975 -2.556568</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2004:lpop_dm  0.004628   0.017584  0.263184</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2005:lpop_dm  0.025113   0.017904  1.402661</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2006:lpop_dm  0.050735   0.021070  2.407884</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2007:lpop_dm  0.011250   0.026617  0.422648</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2006:lpop_dm  0.038935   0.016472  2.363731</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2007:lpop_dm  0.038060   0.022477  1.693276</span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2007:year::2007:lpop_dm -0.019835   0.016198 -1.224528</span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt;                                                Pr(&gt;|t|)    </span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2004         3.2860e-01    </span></span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2005         2.9279e-03 ** </span></span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2006         9.3851e-06 ***</span></span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2007         7.5694e-04 ***</span></span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2006         8.9318e-01    </span></span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2007         4.0798e-02 *  </span></span>
+<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2007:year::2007         1.0866e-02 *  </span></span>
+<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2004:lpop_dm 7.9252e-01    </span></span>
+<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2005:lpop_dm 1.6134e-01    </span></span>
+<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2006:lpop_dm 1.6407e-02 *  </span></span>
+<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2004:year::2007:lpop_dm 6.7273e-01    </span></span>
+<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2006:lpop_dm 1.8474e-02 *  </span></span>
+<span id="cb6-35"><a href="#cb6-35" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2006:year::2007:lpop_dm 9.1027e-02 .  </span></span>
+<span id="cb6-36"><a href="#cb6-36" tabindex="-1"></a><span class="co">#&gt; .Dtreat:first.treat::2007:year::2007:lpop_dm 2.2133e-01    </span></span>
+<span id="cb6-37"><a href="#cb6-37" tabindex="-1"></a><span class="co">#&gt; ... 10 variables were removed because of collinearity (.Dtreat:first.treat::2006:year::2004, .Dtreat:first.treat::2006:year::2005 and 8 others [full set in $collin.var])</span></span>
+<span id="cb6-38"><a href="#cb6-38" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb6-39"><a href="#cb6-39" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb6-40"><a href="#cb6-40" tabindex="-1"></a><span class="co">#&gt; RMSE: 0.537131     Adj. R2: 0.87167 </span></span>
+<span id="cb6-41"><a href="#cb6-41" tabindex="-1"></a><span class="co">#&gt;                  Within R2: 8.449e-4</span></span></code></pre></div>
 <p>What <code>etwfe()</code> has done underneath the hood is construct a
 treatment dummy variable <code>.Dtreat</code> and saturated it together
 with the other variables of interest as a set of multiway interaction
@@ -739,43 +744,44 @@ time, or as an event study). A natural way to perform these aggregations
 is by recovering the appropriate marginal effects. The
 <strong>etwfe</strong> package provides another convenience function for
 doing so: <code>emfx()</code>, which is a thin(ish) wrapper around <a href="https://vincentarelbundock.github.io/marginaleffects/articles/slopes.html"><code>marginaleffects::slopes()</code></a>.</p>
-<p>For example, we can recover the average treatment effect (ATE) as
-follows.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod)</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast Estimate Std. Error     z   Pr(&gt;|z|)    2.5 %</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.05063     0.0125 -4.05 5.1167e-05 -0.07513</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    97.5 % .Dtreat</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.02613    TRUE</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, .Dtreat, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
-<p>In other words, our model is tell us that an increase in the minimum
-wage leads to an approximate 5 percent decrease in teen employment.</p>
-<p>Beyond simple ATEs, <code>emfx()</code> also supports other types of
+<p>For example, we can recover the average treatment effect on the
+treated (ATT) as follows.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">emfx</span>(mod)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast .Dtreat Estimate Std. Error     z Pr(&gt;|z|)</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)    TRUE  -0.0506     0.0125 -4.05   &lt;0.001</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;    2.5 %  97.5 %</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;  -0.0751 -0.0261</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, .Dtreat, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
+<p>In other words, our model is telling us that an increase in the
+minimum wage leads to an approximate 5 percent decrease in teen
+employment.</p>
+<p>Beyond simple ATTs, <code>emfx()</code> also supports other types of
 aggregations via the <code>type</code> argument. For example, we can use
-<code>type = &quot;calendar&quot;</code> to get ATEs by period, or
-<code>type = &quot;group&quot;</code> to get ATEs by cohort groups. But the option
+<code>type = &quot;calendar&quot;</code> to get ATTs by period, or
+<code>type = &quot;group&quot;</code> to get ATTs by cohort groups. But the option
 that will probably be useful to most people is
 <code>type = &quot;event&quot;</code>, which will recover dynamic treatment
 effects <em>a la</em> an event study. Let’s try this out and then save
 the resulting object, since I plan to reuse it in a moment.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mod_es <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>mod_es</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast Estimate Std. Error      z   Pr(&gt;|z|)</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.03321    0.01337 -2.484 0.01297951</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.05735    0.01715 -3.343 0.00082830</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.13787    0.03079 -4.477 7.5665e-06</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.10954    0.03232 -3.389 0.00070142</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     2.5 %   97.5 % event</span></span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.05941 -0.00701     0</span></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.09097 -0.02373     1</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.19823 -0.07751     2</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.17289 -0.04619     3</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, event, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>mod_es <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>mod_es</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast event Estimate Std. Error     z Pr(&gt;|z|)</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     0  -0.0332     0.0134 -2.48    0.013</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     1  -0.0573     0.0172 -3.34   &lt;0.001</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     2  -0.1379     0.0308 -4.48   &lt;0.001</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     3  -0.1095     0.0323 -3.39   &lt;0.001</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt;    2.5 %   97.5 %</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt;  -0.0594 -0.00701</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;  -0.0910 -0.02373</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;  -0.1982 -0.07751</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;  -0.1729 -0.04619</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, event, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
 <p>Our event study suggests that the teen disemployment effect of a
 minimum wage hike is fairly modest at first (3%), but increases over the
 next few years (&gt;10%). In the next section, we’ll look at ways to
@@ -790,22 +796,22 @@ to get a nice regression table of the event study coefficients. Note the
 use of the <code>shape</code> and <code>coef_rename</code> arguments
 below; these are optional but help to make the output look a bit
 nicer.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(modelsummary)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Quick renaming function to replace &quot;.Dtreat&quot; with something more meaningful</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>rename_fn <span class="ot">=</span> <span class="cf">function</span>(old_names) {</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  new_names <span class="ot">=</span> <span class="fu">gsub</span>(<span class="st">&quot;.Dtreat&quot;</span>, <span class="st">&quot;Years post treatment =&quot;</span>, old_names)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setNames</span>(new_names, old_names)</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  mod_es,</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">shape       =</span> term<span class="sc">:</span>event<span class="sc">:</span>statistic <span class="sc">~</span> model,</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">coef_rename =</span> rename_fn,</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">gof_omit    =</span> <span class="st">&quot;Adj|Within|IC|RMSE&quot;</span>,</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">title       =</span> <span class="st">&quot;Event study&quot;</span>,</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">notes       =</span> <span class="st">&quot;Std. errors are clustered at the county level&quot;</span></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">library</span>(modelsummary)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co"># Quick renaming function to replace &quot;.Dtreat&quot; with something more meaningful</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>rename_fn <span class="ot">=</span> <span class="cf">function</span>(old_names) {</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  new_names <span class="ot">=</span> <span class="fu">gsub</span>(<span class="st">&quot;.Dtreat&quot;</span>, <span class="st">&quot;Years post treatment =&quot;</span>, old_names)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="fu">setNames</span>(new_names, old_names)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>}</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>  mod_es,</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>  <span class="at">shape       =</span> term<span class="sc">:</span>event<span class="sc">:</span>statistic <span class="sc">~</span> model,</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>  <span class="at">coef_rename =</span> rename_fn,</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>  <span class="at">gof_omit    =</span> <span class="st">&quot;Adj|Within|IC|RMSE&quot;</span>,</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>  <span class="at">title       =</span> <span class="st">&quot;Event study&quot;</span>,</span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>  <span class="at">notes       =</span> <span class="st">&quot;Std. errors are clustered at the county level&quot;</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>)</span></code></pre></div>
 <table style="NAborder-bottom: 0; width: auto !important; margin-left: auto; margin-right: auto;" class="table">
 <caption>
 Event study
@@ -923,15 +929,15 @@ X
 </table>
 <p>For visualization, you can pass it on to your preferred plotting
 method. For example:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>())</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(mod_es, <span class="fu">aes</span>(<span class="at">x =</span> event, <span class="at">y =</span> estimate, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high)) <span class="sc">+</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="at">col =</span> <span class="st">&quot;darkcyan&quot;</span>) <span class="sc">+</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">&quot;Years post treatment&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Effect on log teen employment&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">theme_set</span>(</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>())</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>)</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="fu">ggplot</span>(mod_es, <span class="fu">aes</span>(<span class="at">x =</span> event, <span class="at">y =</span> estimate, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high)) <span class="sc">+</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="at">col =</span> <span class="st">&quot;darkcyan&quot;</span>) <span class="sc">+</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">&quot;Years post treatment&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Effect on log teen employment&quot;</span>)</span></code></pre></div>
 <p><img src="data:image/png;base64,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" /><!-- --></p>
 <p>Note that <code>emfx</code> only reports post-treatment effects. All
 pre-treatment effects are swept out of the estimation because of the way
@@ -943,17 +949,18 @@ changing the <code>post_only</code> argument. I emphasize that doing so
 is strictly performative—again, pre-treatment effects are zero by
 estimation design—but it might make your event study plot more
 aesthetically pleasing.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Use post_only = FALSE to get the &quot;zero&quot; pre-treatment effects</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>mod_es2 <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>, <span class="at">post_only =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(mod_es2, <span class="fu">aes</span>(<span class="at">x =</span> event, <span class="at">y =</span> estimate, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high)) <span class="sc">+</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="at">col =</span> <span class="st">&quot;darkcyan&quot;</span>) <span class="sc">+</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">&quot;Years post treatment&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Effect on log teen employment&quot;</span>,</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">&quot;Note: Zero pre-treatment effects for illustrative purposes only.&quot;</span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Use post_only = FALSE to get the &quot;zero&quot; pre-treatment effects</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>mod_es2 <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>, <span class="at">post_only =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="fu">ggplot</span>(mod_es2, <span class="fu">aes</span>(<span class="at">x =</span> event, <span class="at">y =</span> estimate, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high)) <span class="sc">+</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="at">col =</span> <span class="st">&quot;darkcyan&quot;</span>) <span class="sc">+</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">&quot;Years post treatment&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Effect on log teen employment&quot;</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">&quot;Note: Zero pre-treatment effects for illustrative purposes only.&quot;</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  )</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; Warning: Removed 4 rows containing missing values (`geom_segment()`).</span></span></code></pre></div>
 <p><img src="data:image/png;base64,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" /><!-- --></p>
 </div>
 </div>
@@ -971,34 +978,34 @@ kinds of heterogeneous treatment effects.</p>
 <p>Consider the following example, where we first create a logical dummy
 variable for all US counties in the eight <a href="https://en.wikipedia.org/wiki/Great_Lakes_region">Great Lake
 states (GLS)</a>.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>gls_fips <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;IL&quot;</span> <span class="ot">=</span> <span class="dv">17</span>, <span class="st">&quot;IN&quot;</span> <span class="ot">=</span> <span class="dv">18</span>, <span class="st">&quot;MI&quot;</span> <span class="ot">=</span> <span class="dv">26</span>, <span class="st">&quot;MN&quot;</span> <span class="ot">=</span> <span class="dv">27</span>,</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>             <span class="st">&quot;NY&quot;</span> <span class="ot">=</span> <span class="dv">36</span>, <span class="st">&quot;OH&quot;</span> <span class="ot">=</span> <span class="dv">39</span>, <span class="st">&quot;PA&quot;</span> <span class="ot">=</span> <span class="dv">42</span>, <span class="st">&quot;WI&quot;</span> <span class="ot">=</span> <span class="dv">55</span>)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>mpdta<span class="sc">$</span>gls <span class="ot">=</span> <span class="fu">substr</span>(mpdta<span class="sc">$</span>countyreal, <span class="dv">1</span>, <span class="dv">2</span>) <span class="sc">%in%</span> gls_fips</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>gls_fips <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;IL&quot;</span> <span class="ot">=</span> <span class="dv">17</span>, <span class="st">&quot;IN&quot;</span> <span class="ot">=</span> <span class="dv">18</span>, <span class="st">&quot;MI&quot;</span> <span class="ot">=</span> <span class="dv">26</span>, <span class="st">&quot;MN&quot;</span> <span class="ot">=</span> <span class="dv">27</span>,</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>             <span class="st">&quot;NY&quot;</span> <span class="ot">=</span> <span class="dv">36</span>, <span class="st">&quot;OH&quot;</span> <span class="ot">=</span> <span class="dv">39</span>, <span class="st">&quot;PA&quot;</span> <span class="ot">=</span> <span class="dv">42</span>, <span class="st">&quot;WI&quot;</span> <span class="ot">=</span> <span class="dv">55</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>mpdta<span class="sc">$</span>gls <span class="ot">=</span> <span class="fu">substr</span>(mpdta<span class="sc">$</span>countyreal, <span class="dv">1</span>, <span class="dv">2</span>) <span class="sc">%in%</span> gls_fips</span></code></pre></div>
 <p>Now imagine that we are interested in estimating separate treatment
 effects for GLS versus non-GLS counties. We do this simply by invoking
 the optional <code>xvar</code> argument as part of our
 <code>etwfe()</code> call.<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a> Any subsequent <code>emfx()</code> call on
 this object will automatically recognize that we want to recover
 treatment effects by these two distinct groups.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>hmod <span class="ot">=</span> <span class="fu">etwfe</span>(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>   lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta, </span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>   <span class="at">vcov =</span> <span class="sc">~</span>countyreal,</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>   <span class="at">xvar =</span> gls           <span class="do">## &lt;= het. TEs by gls</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>   )</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Heterogeneous ATEs (could also specify `type = &quot;event&quot;`, etc.) </span></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(hmod)</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast Estimate Std. Error       z Pr(&gt;|z|)    2.5 %</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.04334    0.02702 -1.6037  0.10879 -0.09631</span></span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.03660    0.03907 -0.9368  0.34886 -0.11318</span></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    97.5 % .Dtreat   gls</span></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  0.009629    TRUE FALSE</span></span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  0.039976    TRUE  TRUE</span></span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, .Dtreat, gls, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>hmod <span class="ot">=</span> <span class="fu">etwfe</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>   lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta, </span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>   <span class="at">vcov =</span> <span class="sc">~</span>countyreal,</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>   <span class="at">xvar =</span> gls           <span class="do">## &lt;= het. TEs by gls</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>   )</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co"># Heterogeneous ATTs (could also specify `type = &quot;event&quot;`, etc.) </span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="fu">emfx</span>(hmod)</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast .Dtreat   gls Estimate Std. Error      z</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)    TRUE FALSE  -0.0433     0.0270 -1.604</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)    TRUE  TRUE  -0.0366     0.0391 -0.937</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt;  Pr(&gt;|z|)   2.5 %  97.5 %</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="co">#&gt;     0.109 -0.0963 0.00963</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co">#&gt;     0.349 -0.1132 0.03998</span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, .Dtreat, gls, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
 <p>The above point estimates might tempt us to think that minimum wage
 hikes caused less teen disemployment in GLS counties than in the rest of
 the US on average. However, to test this formally we can invoke the
@@ -1008,28 +1015,28 @@ package. Probably the easiest way to do this is by using
 <code>b[i]</code>-style positional arguments, where “<code>[i]</code>”
 denotes the row of the <code>emfx()</code> return object. Thus, by
 specifying <code>hypothesis = &quot;b1 = b2&quot;</code>, we can test whether the
-ATEs from row 1 (non-GLS) and row 2 (GLS) are different from one
+ATTs from row 1 (non-GLS) and row 2 (GLS) are different from one
 another.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(hmod, <span class="at">hypothesis =</span> <span class="st">&quot;b1 = b2&quot;</span>)</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Term  Estimate Std. Error       z Pr(&gt;|z|)   2.5 %  97.5 %</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  b1=b2 -0.006736    0.05288 -0.1274  0.89864 -0.1104 0.09691</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">emfx</span>(hmod, <span class="at">hypothesis =</span> <span class="st">&quot;b1 = b2&quot;</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt;   Term Estimate Std. Error      z Pr(&gt;|z|) 2.5 % 97.5 %</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt;  b1=b2 -0.00674     0.0529 -0.127    0.899 -0.11 0.0969</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high</span></span></code></pre></div>
 <p>Here we see that there is actually no statistical difference in the
 average disemployment effect between GLS and non-GLS counties.</p>
 <p>One final aside is that you can easily display the results of
 heterogeneous treatment effects in plot or table form. Here’s an example
 of the latter, where we again make use of the
 <code>modelsummary(..., shape = ...)</code> argument.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">models      =</span> <span class="fu">list</span>(<span class="st">&quot;GLS county&quot;</span> <span class="ot">=</span> <span class="fu">emfx</span>(hmod)),</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">shape       =</span> term <span class="sc">+</span> statistic <span class="sc">~</span> model <span class="sc">+</span> gls, <span class="co"># add xvar variable (here: gls)</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">coef_map    =</span> <span class="fu">c</span>(<span class="st">&quot;.Dtreat&quot;</span> <span class="ot">=</span> <span class="st">&quot;ATT&quot;</span>),</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">gof_map     =</span> <span class="cn">NA</span>,</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">title       =</span> <span class="st">&quot;Comparing the ATT on GLS and non-GLS counties&quot;</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>    <span class="at">models      =</span> <span class="fu">list</span>(<span class="st">&quot;GLS county&quot;</span> <span class="ot">=</span> <span class="fu">emfx</span>(hmod)),</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>    <span class="at">shape       =</span> term <span class="sc">+</span> statistic <span class="sc">~</span> model <span class="sc">+</span> gls, <span class="co"># add xvar variable (here: gls)</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>    <span class="at">coef_map    =</span> <span class="fu">c</span>(<span class="st">&quot;.Dtreat&quot;</span> <span class="ot">=</span> <span class="st">&quot;ATT&quot;</span>),</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>    <span class="at">gof_map     =</span> <span class="cn">NA</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>    <span class="at">title       =</span> <span class="st">&quot;Comparing the ATT on GLS and non-GLS counties&quot;</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>)</span></code></pre></div>
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
 Comparing the ATT on GLS and non-GLS counties
@@ -1081,7 +1088,7 @@ ATT
 </table>
 <p>While the simple example here has been limited to a binary comparison
 of group<br />
-ATEs, note the same logic carries over to richer settings. We can use
+ATTs, note the same logic carries over to richer settings. We can use
 the exact same workflow to estimate heterogeneous treatment effects by
 different aggregations (e.g., event studies) and across groups with many
 levels.</p>
@@ -1093,27 +1100,27 @@ other advanced DiD implementations and extensions—is that it supports
 nonlinear model (distribution / link) families. Users need simply invoke
 the <code>family</code> argument. Here’s a brief example, where we
 recast our earlier event-study as a Poisson regression.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>mpdta<span class="sc">$</span>emp <span class="ot">=</span> <span class="fu">exp</span>(mpdta<span class="sc">$</span>lemp)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">etwfe</span>(</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  emp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta, <span class="at">vcov =</span> <span class="sc">~</span>countyreal,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;poisson&quot;</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">emfx</span>(<span class="st">&quot;event&quot;</span>)</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast Estimate Std. Error        z   Pr(&gt;|z|)</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)  -25.350      15.90 -1.59409 0.11091631</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)    1.092      41.84  0.02609 0.97918362</span></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)  -75.125      22.30 -3.36942 0.00075327</span></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -101.824      28.10 -3.62309 0.00029111</span></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    2.5 %  97.5 % event</span></span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   -56.52   5.818     0</span></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   -80.92  83.100     1</span></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -118.82 -31.425     2</span></span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -156.91 -46.741     3</span></span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, event, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>mpdta<span class="sc">$</span>emp <span class="ot">=</span> <span class="fu">exp</span>(mpdta<span class="sc">$</span>lemp)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">etwfe</span>(</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>  emp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta, <span class="at">vcov =</span> <span class="sc">~</span>countyreal,</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;poisson&quot;</span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>  <span class="fu">emfx</span>(<span class="st">&quot;event&quot;</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast event Estimate Std. Error       z Pr(&gt;|z|)</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     0   -25.35       15.9 -1.5942    0.111</span></span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     1     1.09       41.8  0.0261    0.979</span></span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     2   -75.12       22.3 -3.3696   &lt;0.001</span></span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     3  -101.82       28.1 -3.6234   &lt;0.001</span></span>
+<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a><span class="co">#&gt;   2.5 % 97.5 %</span></span>
+<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a><span class="co">#&gt;   -56.5   5.82</span></span>
+<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a><span class="co">#&gt;   -80.9  83.09</span></span>
+<span id="cb16-17"><a href="#cb16-17" tabindex="-1"></a><span class="co">#&gt;  -118.8 -31.43</span></span>
+<span id="cb16-18"><a href="#cb16-18" tabindex="-1"></a><span class="co">#&gt;  -156.9 -46.75</span></span>
+<span id="cb16-19"><a href="#cb16-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb16-20"><a href="#cb16-20" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb16-21"><a href="#cb16-21" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, event, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
 </div>
 <div id="performance-tips" class="section level2">
 <h2>Performance tips</h2>
@@ -1131,7 +1138,7 @@ non-linearly with the size of the original data, as well as the number
 of interactions from the underlying <code>etwfe</code> model object.
 Without getting too deep into the weeds, we are relying on a numerical
 delta method of the (excellent) <strong>marginaleffects</strong> package
-underneath the hood to recover the ATEs of interest. This method
+underneath the hood to recover the ATTs of interest. This method
 requires estimating two prediction models for <em>each</em> coefficient
 in the model and then computing their standard errors. So it’s a
 potentially expensive operation that can push the computation time for
@@ -1169,45 +1176,45 @@ by running <code>emfx(mod, collapse = TRUE, ...)</code>.</li>
 vignette complete very quickly anyway. But here is a reworking of our
 earlier event study example to demonstrate this performance-conscious
 workflow.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 0 already complete: using the same `mod` object from earlier...</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>, <span class="at">vcov =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast Estimate event</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.03321     0</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.05735     1</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.13787     2</span></span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.10954     3</span></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, estimate, event, predicted, predicted_hi, predicted_lo</span></span>
-<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2</span></span>
-<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>, <span class="at">vcov =</span> <span class="cn">FALSE</span>, <span class="at">collapse =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast Estimate event</span></span>
-<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.02156     0</span></span>
-<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.06347     1</span></span>
-<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.13787     2</span></span>
-<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.10954     3</span></span>
-<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, estimate, event, predicted, predicted_hi, predicted_lo</span></span>
-<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: Results from 1 and 2 are similar enough, so get approx. SEs</span></span>
-<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>mod_es2 <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>, <span class="at">collapse =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># Step 0 already complete: using the same `mod` object from earlier...</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="co"># Step 1</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>, <span class="at">vcov =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast event Estimate</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     0  -0.0332</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     1  -0.0573</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     2  -0.1379</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     3  -0.1095</span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, event, estimate, predicted, predicted_hi, predicted_lo</span></span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a></span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a><span class="co"># Step 2</span></span>
+<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a><span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>, <span class="at">vcov =</span> <span class="cn">FALSE</span>, <span class="at">collapse =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast event Estimate</span></span>
+<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     0  -0.0216</span></span>
+<span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     1  -0.0635</span></span>
+<span id="cb17-21"><a href="#cb17-21" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     2  -0.1379</span></span>
+<span id="cb17-22"><a href="#cb17-22" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     3  -0.1095</span></span>
+<span id="cb17-23"><a href="#cb17-23" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-24"><a href="#cb17-24" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb17-25"><a href="#cb17-25" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, event, estimate, predicted, predicted_hi, predicted_lo</span></span>
+<span id="cb17-26"><a href="#cb17-26" tabindex="-1"></a></span>
+<span id="cb17-27"><a href="#cb17-27" tabindex="-1"></a><span class="co"># Step 3: Results from 1 and 2 are similar enough, so get approx. SEs</span></span>
+<span id="cb17-28"><a href="#cb17-28" tabindex="-1"></a>mod_es2 <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">&quot;event&quot;</span>, <span class="at">collapse =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 <p>To put a fine point on it, we can can compare our original event
 study with the collapsed estimates and see that the results are indeed
 very similar.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(<span class="st">&quot;Original&quot;</span> <span class="ot">=</span> mod_es, <span class="st">&quot;Collapsed&quot;</span> <span class="ot">=</span> mod_es2),</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">shape       =</span> term<span class="sc">:</span>event<span class="sc">:</span>statistic <span class="sc">~</span> model,</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">coef_rename =</span> rename_fn,</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">gof_omit    =</span> <span class="st">&quot;Adj|Within|IC|RMSE&quot;</span>,</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">title       =</span> <span class="st">&quot;Event study&quot;</span>,</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">notes       =</span> <span class="st">&quot;Std. errors are clustered at the county level&quot;</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>    <span class="fu">list</span>(<span class="st">&quot;Original&quot;</span> <span class="ot">=</span> mod_es, <span class="st">&quot;Collapsed&quot;</span> <span class="ot">=</span> mod_es2),</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>    <span class="at">shape       =</span> term<span class="sc">:</span>event<span class="sc">:</span>statistic <span class="sc">~</span> model,</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>    <span class="at">coef_rename =</span> rename_fn,</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>    <span class="at">gof_omit    =</span> <span class="st">&quot;Adj|Within|IC|RMSE&quot;</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>    <span class="at">title       =</span> <span class="st">&quot;Event study&quot;</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>    <span class="at">notes       =</span> <span class="st">&quot;Std. errors are clustered at the county level&quot;</span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>)</span></code></pre></div>
 <table style="NAborder-bottom: 0; width: auto !important; margin-left: auto; margin-right: auto;" class="table">
 <caption>
 Event study
@@ -1376,13 +1383,13 @@ scenarios and also give you a better understanding of
 <p>As I keep reiterating, the ETWFE approach basically involves
 saturating the regression with interaction effects. You can easily grab
 the formula of an estimated model to see for yourself.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>mod<span class="sc">$</span>fml_all</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $linear</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; lemp ~ .Dtreat:i(first.treat, i.year, ref = 0, ref2 = 2003)/lpop_dm</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; &lt;environment: 0x562a9f0d53e8&gt;</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ~first.treat + first.treat[[lpop]] + year + year[[lpop]]</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>mod<span class="sc">$</span>fml_all</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co">#&gt; $linear</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="co">#&gt; lemp ~ .Dtreat:i(first.treat, i.year, ref = 0, ref2 = 2003)/lpop_dm</span></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co">#&gt; &lt;environment: 0x560aaa253a00&gt;</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co">#&gt; ~first.treat + first.treat[[lpop]] + year + year[[lpop]]</span></span></code></pre></div>
 <p>At this point, however, you may notice a few things. The first is
 that our formula references several variables that aren’t in the
 original dataset. An obvious one is the <code>.Dtreat</code> treatment
@@ -1392,27 +1399,27 @@ dummy. A more subtle one is <code>lpop_dm</code>, which is the
 demeaned before they are interacted in the ETWFE setting. Here’s how you
 could have constructed the dataset ahead of time and estimated the ETWFE
 regression manually:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># First construct the dataset</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>mpdta2 <span class="ot">=</span> mpdta <span class="sc">|&gt;</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">.Dtreat =</span> year <span class="sc">&gt;=</span> first.treat <span class="sc">&amp;</span> first.treat <span class="sc">!=</span> <span class="dv">0</span>,</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">lpop_dm =</span> <span class="fu">ave</span>(lpop, first.treat, year, <span class="at">FUN =</span> \(x) x <span class="sc">-</span> <span class="fu">mean</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Then estimate the manual version of etwfe</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>mod2 <span class="ot">=</span> fixest<span class="sc">::</span><span class="fu">feols</span>(</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  lemp <span class="sc">~</span> .Dtreat<span class="sc">:</span><span class="fu">i</span>(first.treat, i.year, <span class="at">ref =</span> <span class="dv">0</span>, <span class="at">ref2 =</span> <span class="dv">2003</span>) <span class="sc">/</span> lpop_dm <span class="sc">|</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    first.treat[lpop] <span class="sc">+</span> year[lpop],</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> mpdta2,</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">vcov =</span> <span class="sc">~</span>countyreal</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># First construct the dataset</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>mpdta2 <span class="ot">=</span> mpdta <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="fu">transform</span>(</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>    <span class="at">.Dtreat =</span> year <span class="sc">&gt;=</span> first.treat <span class="sc">&amp;</span> first.treat <span class="sc">!=</span> <span class="dv">0</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>    <span class="at">lpop_dm =</span> <span class="fu">ave</span>(lpop, first.treat, year, <span class="at">FUN =</span> \(x) x <span class="sc">-</span> <span class="fu">mean</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>  )</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="co"># Then estimate the manual version of etwfe</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>mod2 <span class="ot">=</span> fixest<span class="sc">::</span><span class="fu">feols</span>(</span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>  lemp <span class="sc">~</span> .Dtreat<span class="sc">:</span><span class="fu">i</span>(first.treat, i.year, <span class="at">ref =</span> <span class="dv">0</span>, <span class="at">ref2 =</span> <span class="dv">2003</span>) <span class="sc">/</span> lpop_dm <span class="sc">|</span></span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a>    first.treat[lpop] <span class="sc">+</span> year[lpop],</span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a>  <span class="at">data =</span> mpdta2,</span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a>  <span class="at">vcov =</span> <span class="sc">~</span>countyreal</span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a>)</span></code></pre></div>
 <p>We can confirm that the manual approach yields the same output as our
 original etwfe regression. I’ll use <strong>modelsummary</strong> to do
 that here, since I’ve already loaded it above.<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a>.</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="st">&quot;etwfe&quot;</span> <span class="ot">=</span> mod, <span class="st">&quot;manual&quot;</span> <span class="ot">=</span> mod2),</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">gof_map =</span> <span class="cn">NA</span> <span class="co"># drop all goodness-of-fit info for brevity</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  <span class="fu">list</span>(<span class="st">&quot;etwfe&quot;</span> <span class="ot">=</span> mod, <span class="st">&quot;manual&quot;</span> <span class="ot">=</span> mod2),</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="at">gof_map =</span> <span class="cn">NA</span> <span class="co"># drop all goodness-of-fit info for brevity</span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>)</span></code></pre></div>
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
@@ -1723,50 +1730,50 @@ manual
 </tr>
 </tbody>
 </table>
-<p>To transform these raw coefficients into their more meaningful ATE
+<p>To transform these raw coefficients into their more meaningful ATT
 counterparts, we just need to perform the appropriate marginal effects
-operation. For example, here’s how we can get both the simple ATEs and
-event-study ATEs from earlier. This is what <code>emfx()</code> is doing
+operation. For example, here’s how we can get both the simple ATTs and
+event-study ATTs from earlier. This is what <code>emfx()</code> is doing
 behind the scenes.</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(marginaleffects)</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Simple ATE</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="fu">slopes</span>(</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  mod2, </span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">newdata   =</span> <span class="fu">subset</span>(mpdta2, .Dtreat), <span class="co"># we only want rows where .Dtreat is TRUE</span></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="st">&quot;.Dtreat&quot;</span>, </span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">by        =</span> <span class="st">&quot;.Dtreat&quot;</span></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast Estimate Std. Error     z   Pr(&gt;|z|)    2.5 %</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.05063     0.0125 -4.05 5.1167e-05 -0.07513</span></span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    97.5 % .Dtreat</span></span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.02613    TRUE</span></span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, .Dtreat, predicted, predicted_hi, predicted_lo</span></span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Event study</span></span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a><span class="fu">slopes</span>(</span>
-<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  mod2, </span>
-<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">newdata   =</span> <span class="fu">transform</span>(<span class="fu">subset</span>(mpdta2, .Dtreat), <span class="at">event =</span> first.treat <span class="sc">-</span> year),</span>
-<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="st">&quot;.Dtreat&quot;</span>, </span>
-<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">by        =</span> <span class="st">&quot;event&quot;</span></span>
-<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast Estimate Std. Error      z   Pr(&gt;|z|)</span></span>
-<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.03321    0.01337 -2.484 0.01297951</span></span>
-<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.05735    0.01715 -3.343 0.00082830</span></span>
-<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.13787    0.03079 -4.477 7.5665e-06</span></span>
-<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE) -0.10954    0.03232 -3.389 0.00070142</span></span>
-<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     2.5 %   97.5 % event</span></span>
-<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.05941 -0.00701     0</span></span>
-<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.09097 -0.02373    -1</span></span>
-<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.19823 -0.07751    -2</span></span>
-<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  -0.17289 -0.04619    -3</span></span>
-<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
-<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, event, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="fu">library</span>(marginaleffects)</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a><span class="co"># Simple ATT</span></span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a><span class="fu">slopes</span>(</span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a>  mod2, </span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>  <span class="at">newdata   =</span> <span class="fu">subset</span>(mpdta2, .Dtreat), <span class="co"># we only want rows where .Dtreat is TRUE</span></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a>  <span class="at">variables =</span> <span class="st">&quot;.Dtreat&quot;</span>, </span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a>  <span class="at">by        =</span> <span class="st">&quot;.Dtreat&quot;</span></span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a>  )</span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast .Dtreat Estimate Std. Error     z Pr(&gt;|z|)</span></span>
+<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)    TRUE  -0.0506     0.0125 -4.05   &lt;0.001</span></span>
+<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="co">#&gt;    2.5 %  97.5 %</span></span>
+<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a><span class="co">#&gt;  -0.0751 -0.0261</span></span>
+<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, .Dtreat, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo</span></span>
+<span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a></span>
+<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="co"># Event study</span></span>
+<span id="cb22-20"><a href="#cb22-20" tabindex="-1"></a><span class="fu">slopes</span>(</span>
+<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a>  mod2, </span>
+<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a>  <span class="at">newdata   =</span> <span class="fu">transform</span>(<span class="fu">subset</span>(mpdta2, .Dtreat), <span class="at">event =</span> year <span class="sc">-</span> first.treat),</span>
+<span id="cb22-23"><a href="#cb22-23" tabindex="-1"></a>  <span class="at">variables =</span> <span class="st">&quot;.Dtreat&quot;</span>, </span>
+<span id="cb22-24"><a href="#cb22-24" tabindex="-1"></a>  <span class="at">by        =</span> <span class="st">&quot;event&quot;</span></span>
+<span id="cb22-25"><a href="#cb22-25" tabindex="-1"></a>  )</span>
+<span id="cb22-26"><a href="#cb22-26" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-27"><a href="#cb22-27" tabindex="-1"></a><span class="co">#&gt;     Term                 Contrast event Estimate Std. Error     z Pr(&gt;|z|)</span></span>
+<span id="cb22-28"><a href="#cb22-28" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     0  -0.0332     0.0134 -2.48    0.013</span></span>
+<span id="cb22-29"><a href="#cb22-29" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     1  -0.0573     0.0172 -3.34   &lt;0.001</span></span>
+<span id="cb22-30"><a href="#cb22-30" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     2  -0.1379     0.0308 -4.48   &lt;0.001</span></span>
+<span id="cb22-31"><a href="#cb22-31" tabindex="-1"></a><span class="co">#&gt;  .Dtreat mean(TRUE) - mean(FALSE)     3  -0.1095     0.0323 -3.39   &lt;0.001</span></span>
+<span id="cb22-32"><a href="#cb22-32" tabindex="-1"></a><span class="co">#&gt;    2.5 %   97.5 %</span></span>
+<span id="cb22-33"><a href="#cb22-33" tabindex="-1"></a><span class="co">#&gt;  -0.0594 -0.00701</span></span>
+<span id="cb22-34"><a href="#cb22-34" tabindex="-1"></a><span class="co">#&gt;  -0.0910 -0.02373</span></span>
+<span id="cb22-35"><a href="#cb22-35" tabindex="-1"></a><span class="co">#&gt;  -0.1982 -0.07751</span></span>
+<span id="cb22-36"><a href="#cb22-36" tabindex="-1"></a><span class="co">#&gt;  -0.1729 -0.04619</span></span>
+<span id="cb22-37"><a href="#cb22-37" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-38"><a href="#cb22-38" tabindex="-1"></a><span class="co">#&gt; Prediction type:  response </span></span>
+<span id="cb22-39"><a href="#cb22-39" tabindex="-1"></a><span class="co">#&gt; Columns: type, term, contrast, event, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo</span></span></code></pre></div>
 </div>
 <div id="regarding-fixed-effects" class="section level3">
 <h3>Regarding fixed effects</h3>
@@ -1786,45 +1793,45 @@ the fixed effects slot, we can avoid polluting the user’s console with a
 host of extra coefficients. Nonetheless, we can control this behaviour
 with the <code>fe</code> (“fixed effects”) argument. Consider the
 following options and their manual equivalents.</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># fe = &quot;feo&quot; (fixed effects only)</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>mod_feo <span class="ot">=</span> <span class="fu">etwfe</span>(</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta, <span class="at">vcov =</span> <span class="sc">~</span>countyreal,</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">fe =</span> <span class="st">&quot;feo&quot;</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="co"># ... which is equivalent to the manual regression</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>mod_feo2 <span class="ot">=</span> fixest<span class="sc">::</span><span class="fu">feols</span>(</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  lemp <span class="sc">~</span> .Dtreat<span class="sc">:</span><span class="fu">i</span>(first.treat, i.year, <span class="at">ref =</span> <span class="dv">0</span>, <span class="at">ref2 =</span> <span class="dv">2003</span>) <span class="sc">/</span> lpop_dm <span class="sc">+</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    lpop <span class="sc">+</span> <span class="fu">i</span>(first.treat, lpop, <span class="at">ref =</span> <span class="dv">0</span>) <span class="sc">+</span> <span class="fu">i</span>(year, lpop, <span class="at">ref =</span> <span class="dv">2003</span>) <span class="sc">|</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    first.treat <span class="sc">+</span> year,</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> mpdta2, <span class="at">vcov =</span> <span class="sc">~</span>countyreal</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="co"># fe = &quot;none&quot;</span></span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>mod_none <span class="ot">=</span> <span class="fu">etwfe</span>(</span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta, <span class="at">vcov =</span> <span class="sc">~</span>countyreal,</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">fe =</span> <span class="st">&quot;none&quot;</span></span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a><span class="co"># ... which is equivalent to the manual regression</span></span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>mod_none2 <span class="ot">=</span> fixest<span class="sc">::</span><span class="fu">feols</span>(</span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>  lemp <span class="sc">~</span> .Dtreat<span class="sc">:</span><span class="fu">i</span>(first.treat, i.year, <span class="at">ref =</span> <span class="dv">0</span>, <span class="at">ref2 =</span> <span class="dv">2003</span>) <span class="sc">/</span> lpop_dm <span class="sc">+</span></span>
-<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>    lpop <span class="sc">+</span> <span class="fu">i</span>(first.treat, lpop, <span class="at">ref =</span> <span class="dv">0</span>) <span class="sc">+</span> <span class="fu">i</span>(year, lpop, <span class="at">ref =</span> <span class="dv">2003</span>) <span class="sc">+</span></span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">i</span>(first.treat, <span class="at">ref =</span> <span class="dv">0</span>) <span class="sc">+</span> <span class="fu">i</span>(year, <span class="at">ref =</span> <span class="dv">2003</span>),</span>
-<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> mpdta2, <span class="at">vcov =</span> <span class="sc">~</span>countyreal</span>
-<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co"># fe = &quot;feo&quot; (fixed effects only)</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>mod_feo <span class="ot">=</span> <span class="fu">etwfe</span>(</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>  lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta, <span class="at">vcov =</span> <span class="sc">~</span>countyreal,</span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a>  <span class="at">fe =</span> <span class="st">&quot;feo&quot;</span></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>)</span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="co"># ... which is equivalent to the manual regression</span></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a>mod_feo2 <span class="ot">=</span> fixest<span class="sc">::</span><span class="fu">feols</span>(</span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a>  lemp <span class="sc">~</span> .Dtreat<span class="sc">:</span><span class="fu">i</span>(first.treat, i.year, <span class="at">ref =</span> <span class="dv">0</span>, <span class="at">ref2 =</span> <span class="dv">2003</span>) <span class="sc">/</span> lpop_dm <span class="sc">+</span></span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>    lpop <span class="sc">+</span> <span class="fu">i</span>(first.treat, lpop, <span class="at">ref =</span> <span class="dv">0</span>) <span class="sc">+</span> <span class="fu">i</span>(year, lpop, <span class="at">ref =</span> <span class="dv">2003</span>) <span class="sc">|</span></span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a>    first.treat <span class="sc">+</span> year,</span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a>  <span class="at">data =</span> mpdta2, <span class="at">vcov =</span> <span class="sc">~</span>countyreal</span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a>)</span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a></span>
+<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a><span class="co"># fe = &quot;none&quot;</span></span>
+<span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a>mod_none <span class="ot">=</span> <span class="fu">etwfe</span>(</span>
+<span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a>  lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta, <span class="at">vcov =</span> <span class="sc">~</span>countyreal,</span>
+<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a>  <span class="at">fe =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a>)</span>
+<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="co"># ... which is equivalent to the manual regression</span></span>
+<span id="cb23-20"><a href="#cb23-20" tabindex="-1"></a>mod_none2 <span class="ot">=</span> fixest<span class="sc">::</span><span class="fu">feols</span>(</span>
+<span id="cb23-21"><a href="#cb23-21" tabindex="-1"></a>  lemp <span class="sc">~</span> .Dtreat<span class="sc">:</span><span class="fu">i</span>(first.treat, i.year, <span class="at">ref =</span> <span class="dv">0</span>, <span class="at">ref2 =</span> <span class="dv">2003</span>) <span class="sc">/</span> lpop_dm <span class="sc">+</span></span>
+<span id="cb23-22"><a href="#cb23-22" tabindex="-1"></a>    lpop <span class="sc">+</span> <span class="fu">i</span>(first.treat, lpop, <span class="at">ref =</span> <span class="dv">0</span>) <span class="sc">+</span> <span class="fu">i</span>(year, lpop, <span class="at">ref =</span> <span class="dv">2003</span>) <span class="sc">+</span></span>
+<span id="cb23-23"><a href="#cb23-23" tabindex="-1"></a>    <span class="fu">i</span>(first.treat, <span class="at">ref =</span> <span class="dv">0</span>) <span class="sc">+</span> <span class="fu">i</span>(year, <span class="at">ref =</span> <span class="dv">2003</span>),</span>
+<span id="cb23-24"><a href="#cb23-24" tabindex="-1"></a>  <span class="at">data =</span> mpdta2, <span class="at">vcov =</span> <span class="sc">~</span>countyreal</span>
+<span id="cb23-25"><a href="#cb23-25" tabindex="-1"></a>)</span></code></pre></div>
 <p>I’ll leave it up to you to pass any of these models to
 <code>emfx</code> to confirm that they give correct aggregated treatment
 effects. But we can quickly demonstrate in a regression table that they
 all return the same raw coefficients.</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>mods <span class="ot">=</span> <span class="fu">list</span>(</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;etwfe&quot;</span>         <span class="ot">=</span> mod,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;manual&quot;</span>        <span class="ot">=</span> mod2,</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;etwfe (feo)&quot;</span>   <span class="ot">=</span> mod_feo,</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;manual (feo)&quot;</span>  <span class="ot">=</span> mod_feo2,</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;etwfe (none)&quot;</span>  <span class="ot">=</span> mod_none,</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;manual (none)&quot;</span> <span class="ot">=</span> mod_none2</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(mods, <span class="at">gof_map =</span> <span class="cn">NA</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a>mods <span class="ot">=</span> <span class="fu">list</span>(</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>  <span class="st">&quot;etwfe&quot;</span>         <span class="ot">=</span> mod,</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a>  <span class="st">&quot;manual&quot;</span>        <span class="ot">=</span> mod2,</span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>  <span class="st">&quot;etwfe (feo)&quot;</span>   <span class="ot">=</span> mod_feo,</span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a>  <span class="st">&quot;manual (feo)&quot;</span>  <span class="ot">=</span> mod_feo2,</span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a>  <span class="st">&quot;etwfe (none)&quot;</span>  <span class="ot">=</span> mod_none,</span>
+<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a>  <span class="st">&quot;manual (none)&quot;</span> <span class="ot">=</span> mod_none2</span>
+<span id="cb24-8"><a href="#cb24-8" tabindex="-1"></a>)</span>
+<span id="cb24-9"><a href="#cb24-9" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" tabindex="-1"></a><span class="fu">modelsummary</span>(mods, <span class="at">gof_map =</span> <span class="cn">NA</span>)</span></code></pre></div>
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
@@ -3121,18 +3128,18 @@ for the linear case through the <code>ivar</code> argument. Again, we
 can easily confirm that this yields the same estimated treatment effects
 as the group-level default (although the standard errors will be
 slightly different).</p>
-<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>mod_es_i <span class="ot">=</span> <span class="fu">etwfe</span>(</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta,</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">ivar =</span> countyreal  <span class="co"># NEW: Use unit-level (county) FEs</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">emfx</span>(<span class="st">&quot;event&quot;</span>)</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="st">&quot;Group-level FEs (default)&quot;</span> <span class="ot">=</span> mod_es, <span class="st">&quot;Unit-level FEs&quot;</span> <span class="ot">=</span> mod_es_i),</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">shape       =</span> term<span class="sc">:</span>event<span class="sc">:</span>statistic <span class="sc">~</span> model,</span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">coef_rename =</span> rename_fn,</span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">gof_omit    =</span> <span class="st">&quot;Adj|Within|IC|RMSE&quot;</span></span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>mod_es_i <span class="ot">=</span> <span class="fu">etwfe</span>(</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>  lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat, <span class="at">data =</span> mpdta,</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>  <span class="at">ivar =</span> countyreal  <span class="co"># NEW: Use unit-level (county) FEs</span></span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>  <span class="fu">emfx</span>(<span class="st">&quot;event&quot;</span>)</span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
+<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a>  <span class="fu">list</span>(<span class="st">&quot;Group-level FEs (default)&quot;</span> <span class="ot">=</span> mod_es, <span class="st">&quot;Unit-level FEs&quot;</span> <span class="ot">=</span> mod_es_i),</span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a>  <span class="at">shape       =</span> term<span class="sc">:</span>event<span class="sc">:</span>statistic <span class="sc">~</span> model,</span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a>  <span class="at">coef_rename =</span> rename_fn,</span>
+<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a>  <span class="at">gof_omit    =</span> <span class="st">&quot;Adj|Within|IC|RMSE&quot;</span></span>
+<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a>)</span></code></pre></div>
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>

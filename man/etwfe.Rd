@@ -151,6 +151,7 @@ Extended two-way fixed effects
 }
 
 \examples{
+\dontrun{
 # We’ll use the mpdta dataset from the did package (which you’ll need to 
 # install separately).
 
@@ -172,13 +173,15 @@ mod = etwfe(
     data = mpdta,       # dataset
     vcov = ~countyreal  # vcov adjustment (here: clustered by county)
     )
-mod
+
+# mod ## A fixest model object with fully saturated interaction effects.
 
 # 2) Recover the treatment effects of interest with emfx().
 
-emfx(mod)                 # simple average treatment effect (default)
-emfx(mod, type = "event") # dynamic treatment effect a la an event study
-# Etc. Other aggregation types are "group" and "calendar"
+emfx(mod, type = "event") # dynamic ATE a la an event study
+
+# Etc. Other aggregation type options are "simple" (the default), "group"
+# and "calendar"
 
 
 #
@@ -223,6 +226,7 @@ etwfe(
    family = "poisson"   ## <= family arg for nonlinear options
    ) |>
    emfx("event")
+}
 
 }
 \references{
