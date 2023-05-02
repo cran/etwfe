@@ -4,6 +4,8 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 options(rmarkdown.html_vignette.check_title = FALSE)
+options(modelsummary_factory_default = "gt")
+
 fixest::setFixest_notes(FALSE)
 
 ## -----------------------------------------------------------------------------
