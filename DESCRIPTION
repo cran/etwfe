@@ -1,8 +1,8 @@
 Package: etwfe
 Type: Package
 Title: Extended Two-Way Fixed Effects
-Version: 0.3.3
-Date: 2023-05-26
+Version: 0.3.4
+Date: 2023-06-18
 Authors@R: 
     c(
     person(given = "Grant",
@@ -28,9 +28,9 @@ URL: https://grantmcdermott.com/etwfe/
 BugReports: https://github.com/grantmcdermott/etwfe/issues
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2023-05-26 17:52:16 UTC; grant
+Packaged: 2023-06-19 23:45:08 UTC; grant
 Author: Grant McDermott [aut, cre] (<https://orcid.org/0000-0001-7883-8573>),
   Frederic Kluser [ctb]
 Maintainer: Grant McDermott <grantmcd@uoregon.edu>
 Repository: CRAN
-Date/Publication: 2023-05-27 22:40:02 UTC
+Date/Publication: 2023-06-20 00:00:02 UTC
