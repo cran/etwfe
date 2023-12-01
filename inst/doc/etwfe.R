@@ -1,4 +1,4 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -105,7 +105,7 @@ modelsummary(
     title       = "Comparing the ATT on GLS and non-GLS counties"
 )
 
-## ---- warning=FALSE, message=FALSE--------------------------------------------
+## ----warning=FALSE, message=FALSE---------------------------------------------
 mpdta$emp = exp(mpdta$lemp)
 
 etwfe(
@@ -180,7 +180,7 @@ slopes(
   by        = "event"
   )
 
-## ---- message=FALSE, warning=FALSE--------------------------------------------
+## ----message=FALSE, warning=FALSE---------------------------------------------
 # fe = "feo" (fixed effects only)
 mod_feo = etwfe(
   lemp ~ lpop, tvar = year, gvar = first.treat, data = mpdta, vcov = ~countyreal,
