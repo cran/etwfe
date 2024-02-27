@@ -44,6 +44,10 @@
 ##'   [`fixest::feglm`]). The most common example would be a `vcov` argument.
 ##' @return A fixest object with fully saturated interaction effects.
 ##' 
+##' @importFrom fixest demean feols feglm
+##' @importFrom stats reformulate setNames
+##' @importFrom Formula as.Formula
+##'
 ##' @section Heterogeneous treatment effects:
 ##' 
 ##'   Specifying `etwfe(..., xvar = <xvar>)` will generate interaction effects
@@ -238,10 +242,27 @@ etwfe = function(
   if (is.null(gvar)) stop("A non-NULL `gvar` argument is required.\n")
   if (is.null(tvar)) stop("A non-NULL `tvar` argument is required.\n")
   if (!is.null(family)) ivar = NULL
+
+  if ("group" %in% c(xvar, gvar, tvar, ivar)) {
+    stop(
+      "A variable called 'group' was detected in your model formula.",
+      "This is a reserved name within etwfe.",
+      "Please rename the 'group' column in your dataset, or use a different variable (a copy of 'group' is fine)."
+    )
+  }
   
   fml_paste = paste(fml)
   lhs = fml_paste[2]
   ctrls = fml_paste[3]
+  
+  if ("group" %in% c(xvar, gvar, tvar, ivar, lhs, ctrls)) {
+    stop(
+      "A variable called 'group' was detected in your model formula.",
+      "This is a reserved name within etwfe.",
+      "Please rename the 'group' column in your dataset, or use a different variable (a copy of 'group' is fine)."
+    )
+  }
+  
   if (length(ctrls) == 0) {
     ctrls = NULL
   } else if (ctrls %in% c("0", "1")) {
@@ -286,9 +307,9 @@ etwfe = function(
       tref = min(tref, na.rm = TRUE) ## placeholder. could do something a bit smarter here like bin post periods.
       ## also: what about NA vals?
   }
-  ref_string = paste0(ref_string, ", ref2 = ", tref)
   
   if (cgroup == "notyet") {
+    ref_string = paste0(ref_string, ", ref2 = ", tref)
     data[[".Dtreat"]] = data[[tvar]] >= data[[gvar]] & data[[gvar]] != gref
     if (!gref_min_flag) {
       data[[".Dtreat"]] = ifelse(data[[tvar]] < gref, data[[".Dtreat"]], NA)
@@ -297,7 +318,9 @@ etwfe = function(
     }
   } else {
     ## Placeholder .Dtreat for never treated group
-    data[[".Dtreat"]] = TRUE
+    # data[[".Dtreat"]] = TRUE
+    ## Force reference group to be the year before treatment if cgroup == "never"
+    data[[".Dtreat"]] = data[[tvar]] != data[[gvar]] - 1L
   }
   rhs = paste0(".Dtreat : ", rhs)
   
@@ -305,9 +328,9 @@ etwfe = function(
   
   ## Demean and interact controls ----
   if (!is.null(ctrls)) {
-    dm_fml = stats::reformulate(gvar, response = ctrls)
-    ctrls_dm_df = fixest::demean(dm_fml, data = data, as.matrix = FALSE)
-    ctrls_dm_df = stats::setNames(ctrls_dm_df, ctrls_dm)
+    dm_fml = reformulate(gvar, response = ctrls)
+    ctrls_dm_df = demean(dm_fml, data = data, as.matrix = FALSE)
+    ctrls_dm_df = setNames(ctrls_dm_df, ctrls_dm)
     data = cbind(data, ctrls_dm_df)
     
     if (length(ctrls_dm) > 1) {
@@ -334,10 +357,10 @@ etwfe = function(
   ## Demean the interacted covariate (for heterogeneous ATEs) ----
   if (!is.null(xvar)) {
     data$.Dtreated_cohort = ifelse(data[[gvar]] != gref & !is.na(data[[gvar]]), 1, 0) # generate a treatment-dummy
-    xvar_dm_fml = stats::reformulate(gvar, response = xvar)
-    xvar_dm_df = fixest::demean(xvar_dm_fml, data = data, weights = data$.Dtreated_cohort, as.matrix = FALSE) # weights: only use the treated cohorts (units) to demean
+    xvar_dm_fml = reformulate(gvar, response = xvar)
+    xvar_dm_df = demean(xvar_dm_fml, data = data, weights = data$.Dtreated_cohort, as.matrix = FALSE) # weights: only use the treated cohorts (units) to demean
     if (length(xvar)==ncol(xvar_dm_df)){
-      xvar_dm_df = stats::setNames(xvar_dm_df, paste0(xvar, "_dm")) # give a name
+      xvar_dm_df = setNames(xvar_dm_df, paste0(xvar, "_dm")) # give a name
       xvar_fml_vars = paste0(xvar, "_dm")
     } else {
       names(xvar_dm_df) = paste0(names(xvar_dm_df), "_dm") # give a name
@@ -368,9 +391,9 @@ etwfe = function(
   ## Fixed effects ----
   if (fe != "none") {
     if (is.null(ivar)) {
-      fes = stats::reformulate(paste0(c(gvar, tvar), vs))
+      fes = reformulate(paste0(c(gvar, tvar), vs))
     } else {
-      fes = stats::reformulate(paste0(c(ivar, tvar), vs))
+      fes = reformulate(paste0(c(ivar, tvar), vs))
     }
     fes = paste(fes)[2]
   } else {
@@ -386,24 +409,24 @@ etwfe = function(
   ## Formula
   if( !is.null(xvar) ) {# Formula with interaction
     # one could add gvar:xvar, but the result is equivalent
-    Fml = Formula::as.Formula(paste(
+    Fml = as.Formula(paste(
       lhs, " ~ ", rhs, "|", fes
     )) 
   } else {# formula without interaction
-    Fml = Formula::as.Formula(paste(lhs, " ~ ", rhs, "|", fes)) 
+    Fml = as.Formula(paste(lhs, " ~ ", rhs, "|", fes)) 
   }
   
   ## Estimate
   if (is.null(family)) {
-    est = fixest::feols(Fml, data = data, notes = FALSE, ...)
+    est = feols(Fml, data = data, notes = FALSE, ...)
   } else {
-    est = fixest::feglm(Fml, data = data, notes = FALSE, family = family, ...)
+    est = feglm(Fml, data = data, notes = FALSE, family = family, ...)
   }
   
   # catch for offset if/when passing to emfx later
   # hacky but works (i.e., overcomes the xpd / envir mismatch)
   if (!is.null(est$call$offset) && !is.null(est$model_info$offset)) {
-    est$call$offset = stats::reformulate(est$model_info$offset)
+    est$call$offset = reformulate(est$model_info$offset)
   }
   
   ## Overload class and new attributes (for post-estimation) ----
@@ -414,7 +437,8 @@ etwfe = function(
       xvar = xvar,
       ivar = ivar,
       gref = gref,
-      tref = tref
+      tref = tref,
+      cgroup = cgroup
       )
 
   ## Return ----

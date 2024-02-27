@@ -1,3 +1,18 @@
+# etwfe 0.4.0
+
+## Bug fixes
+
+- Fix ATT calculation for the never-treated case (i..e, `cgroup = "never`) due
+to incorrect subsetting prior to recovering the marginal effects. Thanks to
+@paulofelipe for reporting (#37).
+- Avoid (where possible) or error out if user supplies reserved "group" variable
+in formula (#41).
+
+## Documentation
+
+- Fix missing autolinks in documentation due to markdown formatting (#44
+@etiennebacher).
+
 # etwfe 0.3.5
 
 ## Internal
