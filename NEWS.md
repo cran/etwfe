@@ -1,3 +1,36 @@
+# etwfe 0.5.0
+
+## New features
+
+- New `emfx` arguments:
+  - `emfx(..., predict = c("response", "link"))`, where the latter
+allows for obtaining the linear prediction for non-linear models. Internally
+passed as `marginaleffects::slopes(..., type = predict)`, thus avoiding a clash
+with the topline `emfx(..., type = <aggregration_type>)` argument. (#49)
+- `emfx(..., lean = <logical>)`. Default value is `FALSE`, but switching to
+`TRUE` will ensure a light return object that strips away data-heavy attributes
+(e.g., copies of the original model). These attributes are unlikely to be needed
+as part of the `emfx()` workflow, so we may change the default to `lean = TRUE`
+in a future version of **etwfe**. (#51, #58)
+- Native `plot.emfx()` method (via a **tinyplot** backend) for visualizing
+`emfx` objects. (#54)
+
+## Superseded arguments
+
+- The `collapse` argument in `emfx()` is superseded by `compress`. The older
+argument is retained as an alias for backwards compatibility, but will now
+trigger a message, nudging users to switch to `compress` instead. The end result
+will be identical, though. This cosmetic change was motivated by a desire to be
+more consistent with the phrasing used in the literature (i.e., on
+performance-boosting within group compression and weighting). See Wong _et al._
+([2021](https://doi.org/10.48550/arXiv.2102.11297)), for example. (#57)
+
+## Documentation
+
+- Various documentation improvements, including the addition of a "never"
+treated control group example in the vignette and fixing some confusing typos
+(e.g., refering to wrong default arguments).
+
 # etwfe 0.4.0
 
 ## Bug fixes
