@@ -1,3 +1,43 @@
+# etwfe 0.6.0 (dev version)
+
+**etwfe** v0.6.0 returns to CRAN after addressing some failures due to upstream
+dependency changes. Apologies for any inconvenience caused.
+
+## Breaking changes
+
+- The default behaviour of the `etwfe(..., fe = <string>)` argument now hinges on
+  the type of model family. For Gaussian models, we use the same `"vs"` (varying
+  slopes) option as before. But for non-linear families like Poission, we now
+  default to `"none"`. This is to preserve the correct VCOV behaviour of these
+  models once they are passed to `emfx()`, thus matching the new upstream logic
+  of **marginaleffects**. (Briefly: the standard errors of these non-linear
+  families cannot be computed correctly with derivative methods on estimations
+  where the fixed-effects have been abstracted away; see
+  [marginaleffects#1487](https://github.com/vincentarelbundock/marginaleffects/issues/1487)
+  for more details.) Technically this is a breaking change, but it requires no
+  changes on the user side and the end result should be identical in most cases.
+  The only change you might see is that the standard errors from estimations
+  with non-linear families will be slightly different/corrected. (#67) 
+
+## New Features
+
+- The new `emfx(..., window = <numeric>)` argument allows users to restrict the
+  temporal window around the treatment event, thereby narrowing the
+  consideration horizon. This may prove helpful for cases with a large number of
+  pre- and/or post-treatment periods. Thanks to @fhollenbach for the initial
+  suggestion and implementation. (#46)
+
+## Bug fixes
+
+- Fix bug where a superfluous factor or character column could cause the
+  compression step in `emfx(..., compress = TRUE)` to fail. Thanks to @umor for
+  reporting in #66.
+
+## Internals
+
+- Bump **marginaleffects** dependency to 0.29.0.
+- Bump **tinyplot** depencency to v0.4.2.
+
 # etwfe 0.5.0
 
 ## New features

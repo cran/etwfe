@@ -1,8 +1,8 @@
 Package: etwfe
 Type: Package
 Title: Extended Two-Way Fixed Effects
-Version: 0.5.0
-Date: 2024-12-16
+Version: 0.6.0
+Date: 2025-09-02
 Authors@R: 
     c(
     person(given = "Grant",
@@ -20,7 +20,7 @@ Description: Convenience functions for implementing extended two-way
   <doi:10.2139/ssrn.3906345>, <doi:10.1093/ectj/utad016>.
 License: MIT + file LICENSE
 Imports: fixest (>= 0.11.2), stats, data.table, Formula,
-        marginaleffects (>= 0.24.0), tinyplot (>= 0.2.0)
+        marginaleffects (>= 0.29.0), tinyplot (>= 0.4.2)
 Suggests: did, broom, modelsummary (>= 2.2.0), ggplot2, knitr,
         rmarkdown, tinytest
 Encoding: UTF-8
@@ -29,9 +29,10 @@ URL: https://grantmcdermott.com/etwfe/
 BugReports: https://github.com/grantmcdermott/etwfe/issues
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2024-12-16 22:07:56 UTC; gmcd
-Author: Grant McDermott [aut, cre] (<https://orcid.org/0000-0001-7883-8573>),
+Packaged: 2025-09-03 02:17:04 UTC; gmcd
+Author: Grant McDermott [aut, cre] (ORCID:
+    <https://orcid.org/0000-0001-7883-8573>),
   Frederic Kluser [ctb]
 Maintainer: Grant McDermott <gmcd@amazon.com>
 Repository: CRAN
-Date/Publication: 2024-12-16 22:20:02 UTC
+Date/Publication: 2025-09-03 06:50:13 UTC

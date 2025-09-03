@@ -12,8 +12,6 @@ badge](https://grantmcdermott.r-universe.dev/badges/etwfe)](https://grantmcdermo
 [![Dev
 R-CMD-check](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/grantmcdermott/etwfe/actions/workflows/R-CMD-check.yaml)
 [![CRAN
-checks](https://badges.cranchecks.info/worst/etwfe.svg)](https://cran.r-project.org/web/checks/check_results_etwfe.html)
-[![CRAN
 downloads](https://cranlogs.r-pkg.org/badges/etwfe)](https://cran.r-project.org/package=etwfe)
 [![Dependencies](https://tinyverse.netlify.app/badge/etwfe)](https://CRAN.R-project.org/package=etwfe)
 [![Docs](https://img.shields.io/badge/docs-homepage-blue.svg)](https://grantmcdermott.com/etwfe/index.html)
